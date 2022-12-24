@@ -9,4 +9,4 @@ python run.py -p <PROTOCOL> -o <OUTPUT>
 ## Help command
 `python run.py -h`
 
-[ProxyScrape.com](proxyscrape.com)
+[ProxyScrape.com](https://proxyscrape.com)
