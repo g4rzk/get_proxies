@@ -13,6 +13,7 @@ from concurrent.futures import ThreadPoolExecutor
 red = "\033[1;91m"
 green = "\033[1;92m"
 white = "\033[1;97m"
+timeNow = datetime.datetime.now()
 
 class getProxies:
 	
@@ -74,12 +75,13 @@ class getProxies:
 				else:
 					data["anonymity"] = "Anonymous"
 				
+				with open(f"{self.o.split('.')[0]}.txt", "a") as file:
+					file.write(f"{i}\n")
 				self.tampung.append(data)
 		except:
 			print(f" {white}[{red}DEAD{white}]=> {i}")
 	
 	def __save__(self):
-		timeNow = datetime.datetime.now()
 		arrayJson = {
 			"lastupdate": f"{timeNow}", 
 			"data": self.tampung
