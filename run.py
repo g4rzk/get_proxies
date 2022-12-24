@@ -8,6 +8,7 @@ import argparse
 import requests
 import datetime
 from time import time
+from concurrent.futures import ThreadPoolExecutor
 
 red = "\033[1;91m"
 green = "\033[1;92m"
@@ -20,7 +21,7 @@ class getProxies:
 		self.p = protocol
 		self.proxies = []
 		self.tampung = []
-		self.timeout = 2
+		self.timeout = 10
 		self.__start__()
 		self.__save__()
 	
@@ -31,14 +32,14 @@ class getProxies:
 			"Mozilla/5.0 (Linux; Android 5.0; ASUS_Z00AD Build/LRX21V; wv) AppleWebKit/537.36 (KHTML, like Gecko) Version/4.0 Chrome/95.0.4638.74 Mobile Safari/537.36 GSA/11.31.16.21.x86", 
 			"Mozilla/5.0 (Linux; Android 6.0.1; ASUS_Z010D Build/MMB29P) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/93.0.4577.82 Mobile Safari/537.36"
 		]
-		
 		return random.choice(useragent)
 		
 	def __start__(self):
 		self.proxyScape()
-		print(f"{white}[TOTAL]=> {green}{len(self.proxies)}{white}")
-		for i in self.proxies:
-			self.checkerProxy(i)
+		with ThreadPoolExecutor(max_workers=30) as th:
+			print(f"{white}[TOTAL]=> {green}{len(self.proxies)}{white}")
+			for i in self.proxies:
+				th.submit(self.checkerProxy, i)
 
 	def proxyScape(self):
 		try:
@@ -79,7 +80,6 @@ class getProxies:
 	
 	def __save__(self):
 		timeNow = datetime.datetime.now()
-				
 		arrayJson = {
 			"lastupdate": f"{timeNow}", 
 			"data": self.tampung
