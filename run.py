@@ -2,7 +2,6 @@
 # System: get proxies -> check -> filter and save to json
 
 import os
-import sys
 import json
 import random
 import argparse
@@ -10,7 +9,6 @@ import requests
 import datetime
 from time import time
 from concurrent.futures import ThreadPoolExecutor
-from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 
 red = "\033[1;91m"
 green = "\033[1;92m"
@@ -21,8 +19,8 @@ class getProxies:
 	
 	def __init__(self, output):
 		self.o = output
-		self.live, self.dead, self.proxies, self.proxies2 = [], [], [], []
-		self.loop, self.timeout = 0, 10
+		self.live, self.proxies = [], []
+		self.timeout = 10
 		self.__start__()
 		self.__save__()
 	
@@ -37,23 +35,16 @@ class getProxies:
 		
 	def __start__(self):
 		self.proxyScape()
-		global prog, des
-		prog = Progress(SpinnerColumn("clock"),TextColumn("{task.description}"),BarColumn(),TextColumn("{task.percentage:.0f}%"))
-		des = prog.add_task("",total=len(self.proxies2))
-		with prog:
-			with ThreadPoolExecutor(max_workers=30) as th:
-				print(f"{white}[TOTAL]=> {green}{len(self.proxies)}{white}")
-				for i in self.proxies:
-					th.submit(self.checkerProxy, i)
-		sys.exit(f"\n{white}[EXIT] Proses sudah selssai")
+		with ThreadPoolExecutor(max_workers=30) as th:
+			print(f"{white}[TOTAL]=> {green}{len(self.proxies)}{white}")
+			for i in self.proxies:
+				th.submit(self.checkerProxy, i)
 
 	def proxyScape(self):
 		try:
 			r = requests.get(f"https://api.proxyscrape.com/v2/?request=displayproxies&protocol=all&timeout=10000&country=all&ssl=all&anonymity=all", headers={"user-agent": self.user_agent()}).text
 			for a in r.splitlines():
 				self.proxies.append(a)
-			for b in self.proxies:
-				self.proxies2.insert(0, b)
 		except:
 			pass
 		
@@ -61,8 +52,6 @@ class getProxies:
 	
 	def checkerProxy(self, i):
 		data = {}
-		prog.update(des,description=f"{str(self.loop)}/{len(self.proxies)} LIVE-:[bold green]{len(self.live)}[/] DEAD-:[bold yellow]{len(self.dead)}[/]")
-		prog.advance(des)
 		for protocol in ["http", "socks4", "socks5"]:
 			proxyDict = {
 				"http": f"{protocol}://{i}", 
@@ -77,7 +66,7 @@ class getProxies:
 				finish = time() - start
 			
 				if response.status_code == 200:
-					print(f"\r {white}[{green}LIVE{white}]=> {i}")
+					print(f" {white}[{green}LIVE{white}]=> {i} - {protocol}")
 					ipProxy = i.split(":")
 					data["ip"] = ipProxy[0]
 					data["port"] = ipProxy[1]
@@ -96,12 +85,8 @@ class getProxies:
 						file.write(f"{i} - {data['type']}\n")
 				
 					self.live.append(data)
-				else:
-					self.dead.append(i)
 			except:
-				pass
-				
-		self.loop +=1
+				print(f" {white}[{red}DEAD{white}]=> {i} - {protocol}")
 	
 	def __save__(self):
 		arrayJson = {
