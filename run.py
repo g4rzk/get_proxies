@@ -2,6 +2,7 @@
 # System: get proxies -> check -> filter and save to json
 
 import os
+import sys
 import json
 import random
 import argparse
@@ -44,7 +45,7 @@ class getProxies:
 				print(f"{white}[TOTAL]=> {green}{len(self.proxies)}{white}")
 				for i in self.proxies:
 					th.submit(self.checkerProxy, i)
-		exit("\n{white}[EXIT] Proses sudah selssai")
+		sys.exit(f"\n{white}[EXIT] Proses sudah selssai")
 
 	def proxyScape(self):
 		try:
