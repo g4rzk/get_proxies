@@ -9,6 +9,7 @@ import requests
 import datetime
 from time import time
 from concurrent.futures import ThreadPoolExecutor
+from rich.progress import Progress, SpinnerColumn, BarColumn, TextColumn
 
 red = "\033[1;91m"
 green = "\033[1;92m"
@@ -17,12 +18,10 @@ timeNow = datetime.datetime.now()
 
 class getProxies:
 	
-	def __init__(self, protocol, output):
+	def __init__(self, output):
 		self.o = output
-		self.p = protocol
-		self.proxies = []
-		self.tampung = []
-		self.timeout = 10
+		self.live, self.dead, self.proxies, self.proxies2 = [], [], [], []
+		self.loop, self.timeout = 0, 10
 		self.__start__()
 		self.__save__()
 	
@@ -37,16 +36,23 @@ class getProxies:
 		
 	def __start__(self):
 		self.proxyScape()
-		with ThreadPoolExecutor(max_workers=30) as th:
-			print(f"{white}[TOTAL]=> {green}{len(self.proxies)}{white}")
-			for i in self.proxies:
-				th.submit(self.checkerProxy, i)
+		global prog, des
+		prog = Progress(SpinnerColumn("clock"),TextColumn("{task.description}"),BarColumn(),TextColumn("{task.percentage:.0f}%"))
+		des = prog.add_task("",total=len(self.proxies2))
+		with prog:
+			with ThreadPoolExecutor(max_workers=30) as th:
+				print(f"{white}[TOTAL]=> {green}{len(self.proxies)}{white}")
+				for i in self.proxies:
+					th.submit(self.checkerProxy, i)
+		exit("\n{white}[EXIT] Proses sudah selssai")
 
 	def proxyScape(self):
 		try:
-			r = requests.get(f"https://api.proxyscrape.com/v2/?request=displayproxies&protocol={self.p}&timeout=10000&country=all&ssl=all&anonymity=all", headers={"user-agent": self.user_agent()}).text
+			r = requests.get(f"https://api.proxyscrape.com/v2/?request=displayproxies&protocol=all&timeout=10000&country=all&ssl=all&anonymity=all", headers={"user-agent": self.user_agent()}).text
 			for a in r.splitlines():
 				self.proxies.append(a)
+			for b in self.proxies:
+				self.proxies2.insert(0, b)
 		except:
 			pass
 		
@@ -54,49 +60,64 @@ class getProxies:
 	
 	def checkerProxy(self, i):
 		data = {}
-		try:
-			start = time()
-			response = requests.get("http://ip-api.com/json/?fields=66842623", 
-				headers={"user-agent": self.user_agent()}, 
-				proxies={"http": f"{self.p}://{i}", "https": f"{self.p}://{i}"}, 
-				timeout=self.timeout)
-			finish = time() - start
+		prog.update(des,description=f"{str(self.loop)}/{len(self.proxies)} LIVE-:[bold green]{len(self.live)}[/] DEAD-:[bold yellow]{len(self.dead)}[/]")
+		prog.advance(des)
+		for protocol in ["http", "socks4", "socks5"]:
+			proxyDict = {
+				"http": f"{protocol}://{i}", 
+				"https": f"{protocol}://{i}"
+			}
+			try:
+				start = time()
+				response = requests.get("http://ip-api.com/json/?fields=66842623", 
+					headers={"user-agent": self.user_agent()}, 
+					proxies=proxyDict, 
+					timeout=self.timeout)
+				finish = time() - start
 			
-			if response.status_code == 200:
-				print(f" {white}[{green}LIVE{white}]=> {i}")
-				ipProxy = i.split(":")
-				data["ip"] = ipProxy[0]
-				data["port"] = ipProxy[1]
-				data["type"] = self.p
-				data["country"] = response.json()["country"]
-				data["time_response"] = str(finish)[0:3] + " ms"
-				if ipProxy[0] in response.json()["query"]:
-					data["anonymity"] = "Transparent"
-				else:
-					data["anonymity"] = "Anonymous"
+				if response.status_code == 200:
+					print(f"\r {white}[{green}LIVE{white}]=> {i}")
+					ipProxy = i.split(":")
+					data["ip"] = ipProxy[0]
+					data["port"] = ipProxy[1]
+					if "http" in protocol:
+						data["type"] = "http/https"
+					else:
+						data["type"] = protocol
+					data["country"] = response.json()["country"]
+					data["time_response"] = str(finish)[0:3] + " ms"
+					if ipProxy[0] in response.json()["query"]:
+						data["anonymity"] = "Transparent"
+					else:
+						data["anonymity"] = "Anonymous"
 				
-				with open(f"{self.o.split('.')[0]}.txt", "a") as file:
-					file.write(f"{i}\n")
-				self.tampung.append(data)
-		except:
-			print(f" {white}[{red}DEAD{white}]=> {i}")
+					with open(f"{self.o.split('.')[0]}.txt", "a") as file:
+						file.write(f"{i} - {data['type']}\n")
+				
+					self.live.append(data)
+				else:
+					self.dead.append(i)
+			except:
+				pass
+				
+		self.loop +=1
 	
 	def __save__(self):
 		arrayJson = {
 			"lastupdate": f"{timeNow}", 
-			"data": self.tampung
+			"data": self.live
 		}
 		with open(self.o, "w") as file:
 			json.dump(arrayJson, file)
-
+		
 if __name__ == "__main__":
 	os.system("clear")
+	print(f"{white} _____     _   _____             _         \n|   __|___| |_|  _  |___ ___ _ _|_|___ ___ \n|  |  | -_|  _|   __|  _| . |_'_| | -_|_ -|\n|_____|___|_| |__|  |_| |___|_,_|_|___|___|\n[{red}*{white}] Author  : g4rzk\n[{red}*{white}] Website : https://proxyscrape.my.id\n")
 	parser = argparse.ArgumentParser(description="Get Proxies Live Free For You")
-	parser.add_argument("-p", type=str, metavar="<PROTOCOL>", help="Protocol proxies, exampe: https, socks4 or socks5")
 	parser.add_argument("-o", type=str, metavar="<OUTPUT>", help="Output file")
 	args = parser.parse_args()
 	
-	if args.p:
-		getProxies(args.p, args.o)
+	if args.o:
+		getProxies(args.o)
 	else:
 		parser.print_help()
