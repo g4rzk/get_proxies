@@ -3,7 +3,7 @@ get proxies live with python >=3.9
 
 ## How to usage
 ```
-python run.py -p <PROTOCOL> -o <OUTPUT>
+python run.py -o <OUTPUT>
 ```
 
 ## Help command
