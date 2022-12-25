@@ -86,7 +86,7 @@ class getProxies:
 				
 					self.live.append(data)
 			except:
-				print(f" {white}[{red}DEAD{white}]=> {i} - {protocol}")
+				pass
 	
 	def __save__(self):
 		arrayJson = {
