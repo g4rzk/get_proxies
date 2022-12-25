@@ -9,4 +9,7 @@ python run.py -o <OUTPUT>
 ## Help command
 `python run.py -h`
 
+## Module
+`requests` and `requests[socks]`
+
 [ProxyScrape.com](https://proxyscrape.com)
